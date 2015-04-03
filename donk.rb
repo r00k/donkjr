@@ -19,51 +19,47 @@ def big_pair?
    %w(8 8)].include?(ranks)
 end
 
+def high_cards?
+  [%w(A K),
+   %w(K Q),
+   %w(Q J),
+   %w(J T),
+   %w(T 9),
+   %w(A Q),
+   %w(K J),
+   %w(Q T),
+   %w(J 9),
+   %w(A J),
+   %w(K T),
+   %w(A T)].map(&:sort).include?(ranks.sort)
+end
+
 def holding_premium_hand?
-  big_pair?
+  big_pair? ||
+    high_cards?
 end
 
 Thread.new do
-  client = TCPSocket.new 'localhost', 2000
+  client = TCPSocket.new '192.168.2.90', 2000
 
   while line = client.gets
     json = JSON.parse(line)
-    puts json
     case json["event"]
     when "hole"
       store_cards(json["cards"])
     when "choice"
       if holding_premium_hand?
-        puts "raising"
+        puts "*** Donk has #{@cards} and is RAISING"
         client.puts "RAISE"
       else
-        puts "folding"
+        puts "*** Donk has #{@cards} and is FOLDING"
         client.puts "FOLD"
       end
     when "game_over"
-      puts "WINNERS DECLARED"
+      puts "Winner: #{json['winner']}, Won?: #{json['won']}"
       break
     when "get_name"
       client.puts "DonkJr"
     end
   end
 end
-
-3.times.map do |i|
-  Thread.new do
-    client = TCPSocket.new 'localhost', 2000
-
-    while line = client.gets
-      json = JSON.parse(line)
-      case json["event"]
-      when "choice"
-        choice = %w(RAISE CALL FOLD).sample
-        client.puts choice
-      when "game_over"
-        break
-      when "get_name"
-        client.puts "Rando #{i}"
-      end
-    end
-  end
-end.map(&:join)
