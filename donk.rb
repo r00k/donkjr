@@ -39,27 +39,25 @@ def holding_premium_hand?
     high_cards?
 end
 
-Thread.new do
-  client = TCPSocket.new '192.168.2.90', 2000
+client = TCPSocket.new 'mongeau.local', 2000
 
-  while line = client.gets
-    json = JSON.parse(line)
-    case json["event"]
-    when "hole"
-      store_cards(json["cards"])
-    when "choice"
-      if holding_premium_hand?
-        puts "*** Donk has #{@cards} and is RAISING"
-        client.puts "RAISE"
-      else
-        puts "*** Donk has #{@cards} and is FOLDING"
-        client.puts "FOLD"
-      end
-    when "game_over"
-      puts "Winner: #{json['winner']}, Won?: #{json['won']}"
-      break
-    when "get_name"
-      client.puts "DonkJr"
+while line = client.gets
+  json = JSON.parse(line)
+  case json["event"]
+  when "hole"
+    store_cards(json["cards"])
+  when "choice"
+    if holding_premium_hand?
+      puts "*** Donk has #{@cards} and is RAISING"
+      client.puts "RAISE"
+    else
+      puts "*** Donk has #{@cards} and is FOLDING"
+      client.puts "FOLD"
     end
+  when "game_over"
+    puts "Winner: #{json['winner']}, Won?: #{json['won']}"
+    break
+  when "get_name"
+    client.puts "DonkJr"
   end
 end
